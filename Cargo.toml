@@ -1,0 +1,42 @@
+[package]
+name = "rawpilot"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-3.0-or-later"
+description = "A personal tool that pre-rates Nikon NEF card dumps for RawTherapee"
+repository = "https://github.com/andreyk0/rawpilot"
+
+[dependencies]
+anyhow = "1.0.104"
+# The review server: loopback only, pages rendered by maud.
+axum = { version = "0.8", default-features = false, features = ["http1", "tokio", "form", "query"] }
+base64 = "0.23.1"
+blake3 = "1.8.7"
+chrono = { version = "0.4.45", default-features = false, features = ["serde", "std"] }
+clap = { version = "4.6.7", features = ["derive"] }
+# The per-launch session token comes from the operating system's random source.
+getrandom = "0.4"
+image = { version = "0.25.10", default-features = false, features = ["jpeg", "pnm"] }
+maud = { version = "0.27", features = ["axum"] }
+quick-xml = "0.42.0"
+rayon = "1.12.0"
+reqwest = { version = "0.13.5", features = ["blocking", "json"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+# The token is compared without an early exit.
+subtle = "2.6"
+thiserror = "2.0.21"
+tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "net", "signal"] }
+toml = "1.1.8"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+
+[dev-dependencies]
+tempfile = "3.27.0"
+tower = { version = "0.5", features = ["util"] }
+
+# Debug builds (`cargo run`, `cargo test`) decode and resize 45 MP renders: the image crates
+# take about 40 s per render unoptimised and 0.9 s optimised (measured). rawpilot's own code
+# stays at opt-level 0 for debugging.
+[profile.dev.package."*"]
+opt-level = 3

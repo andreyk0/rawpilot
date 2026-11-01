@@ -1,0 +1,201 @@
+# rawpilot configuration. `--config FILE` replaces this file as a whole, so a custom config
+# starts as a copy of it: every key is required.
+
+[features]
+# Laplacian-variance sharpness is measured on a tiles_x × tiles_y grid; the mean of the
+# sharpest `top_tiles` stands for the frame when there is no usable AF box.
+tiles_x = 8
+tiles_y = 6
+top_tiles = 3
+# Nikon AF boxes are ~150 px on an 8256 px preview, too few pixels for a stable variance.
+# The measured window is a square of at least this size centred on the box.
+af_window_min_px = 384
+# Below this luma standard deviation (0–255, measured on a 1/8-scale copy, so blur barely
+# moves it) the AF window is featureless (sky, haze) and the tiles are used instead.
+af_texture_min = 6.0
+thumb_long_edge_px = 1024
+thumb_jpeg_quality = 85
+
+[group]
+# Z8 bursts run at 7.5–20 fps, so frames inside one are 0.05–0.15 s apart.
+burst_gap_s = 1.5
+# Hamming distance between consecutive frames' 64-bit dHash; above it a new burst starts
+# even inside the time gap (recomposed between two quick presses).
+burst_dhash_max = 14
+# Bursts closer than this are shown as one scene in the report.
+scene_gap_s = 90.0
+
+[rate]
+# A frame other than its burst's best is rejected when its sharpness is below this fraction
+# of the burst's sharpest. In a typical 1/60 s burst of people walking, the AF window ranges
+# from about 15% to 100% of the best frame.
+reject_sharpness_rel_max = 0.4
+# Gemini's 1–5 aesthetic score at which a Selected frame gets 5★ instead of 4★.
+excellent_aesthetic_min = 5
+
+[judge]
+# What Gemini sees: "developed" renders each raw neutrally (see [develop]) so frames are
+# judged on what an edit can make of them; "camera" uses the embedded JPEG, brightened back
+# by any negative exposure compensation. "developed" needs libraw's dcraw_emu.
+preview = "developed"
+# A concrete version rather than an alias like gemini-flash-latest, so cached answers stay
+# comparable across runs. The API key comes from GEMINI_API_KEY.
+model = "gemini-3.8-flash"
+# MEDIUM measured 532 tokens per 1024 px thumbnail on gemini-3.8-flash.
+media_resolution = "MEDIA_RESOLUTION_MEDIUM"
+thinking_level = "low"
+# Longer bursts send their sharpest frames; the rest are rated on sharpness alone.
+frames_per_request_max = 16
+# The scene pass compares burst winners of consecutive scenes side by side, this many per
+# request: enough context for relative tiers, few enough to stay legible at medium
+# resolution.
+scene_photos_per_request_max = 24
+# The faces pass chooses among a people or wildlife burst's frames by eyes and expression,
+# considering only frames at least this sharp relative to the burst's sharpest: above about
+# 70% the difference is invisible in a print, so eyes decide.
+faces_sharpness_rel_min = 0.7
+request_timeout_s = 120
+# Total wall time per burst is bounded by attempts × timeout plus backoff (2 s, 4 s, ...).
+attempts_max = 3
+concurrency = 4
+
+[shortlist]
+# Every take the scene pass called keeper or portfolio is ranked once across the whole shoot;
+# this share of them becomes 5★ portfolio, the rest 4★ keeper.
+portfolio_share = 0.3
+# At most this many photos per request; more candidates are ranked in interleaved chunks
+# (every k-th candidate) and merged by relative place.
+photos_max = 48
+
+[develop]
+# The neutral development judged in place of the camera JPEG: exposure pushed so the scene's
+# log-average luminance sits at mid grey, bounded so a lens-cap frame is not amplified into
+# grey noise. Typical pushes are +1.0 to +3.0 EV (the raw keeps about a stop of headroom over
+# the camera JPEG, more with negative compensation).
+push_ev_min = -1.0
+push_ev_max = 3.0
+# Power around mid grey (1 = linear). With 1.0 the result looks flat, and a judge trained on
+# finished photos marks flat down just as it marks dark down.
+contrast = 1.2
+saturation = 1.25
+
+[look]
+# When rawpilot creates a pp3 (RawTherapee in procparams mode), it also sets the exposure the
+# image opens with. RawTherapee's auto-matched curve reproduces the camera JPEG, dark after
+# negative compensation in sun; the correction is the larger of undoing that compensation
+# and key_gap_fraction of the gap between the development's key and the camera JPEG's.
+# 0.5 matches rawtherapee-cli renders judged by eye; the full gap overshoots by about a stop
+# on low-key (forest) scenes.
+enabled = true
+key_gap_fraction = 0.5
+compensation_min_ev = -1.0
+compensation_max_ev = 2.0
+# Smaller corrections leave RawTherapee's default untouched.
+compensation_threshold_ev = 0.25
+# RawTherapee's highlight compression (0–500) whenever exposure is raised, so a brightened
+# sky keeps its gradation.
+highlight_compr = 100
+
+[review]
+# `process` renders every look option of each shot rated at least this many stars once, at
+# full size, and keeps only a fit view and 1:1 crops of it under <dir>/.rawpilot/looks/.
+prerender_min_rating = 3
+# The fit view: a 45 MP render scaled to this long edge is sharp on a 4K screen and ~1 MB.
+fit_long_edge_px = 2560
+fit_jpeg_quality = 88
+# 1:1 regions: the AF box padded to at least af_region_min_px around its centre, each located
+# face padded by face_pad_fraction of its size on every side, or one centre_region_px square
+# when the shot has neither. A region larger than region_max_px is scaled down to it.
+region_max_px = 1200
+region_jpeg_quality = 92
+af_region_min_px = 512
+face_pad_fraction = 0.25
+centre_region_px = 1024
+# The full-size render the views are cut from, deleted once they are.
+render_jpeg_quality = 95
+# rawtherapee-cli is itself multithreaded; 4 in parallel measured ~3.7 s per render (one
+# option of one Z8 NEF), so ~15 s per NEF with four options. 8 gained 5 % for 8.6 GB more
+# memory.
+render_jobs = 4
+# `review`: a region crop is shown at this multiple of its pixel size, so detail is legible
+# without squinting; the fit view sits in the middle of the window and takes at most this
+# share (percent, 30..=85) of its width, with the regions on both sides of it (a narrow
+# window puts them below it); thumbnails are this tall, and the filmstrip shows this many
+# shots on each side of the current one.
+region_zoom = 1.5
+centre_width_pct = 60
+thumb_height_px = 84
+filmstrip_reach = 12
+
+# Look options. Each is a partial pp3 layered over the default profile (any key it does not
+# mention keeps the default's value), then rawpilot's exposure look on top. `key` is the
+# letter the review UI binds to it: an ASCII letter other than the ones the page uses itself
+# (f j k, in either case; the arrows, Enter, Space, Tab, ? and the digits are not letters).
+
+# The default profile as it is: Auto-Matched Curve plus the exposure look.
+[[review.option]]
+name = "Camera"
+key = "c"
+partial = "none"
+
+# RawTherapee's Standard Film Curve, copied into profiles/film-iso-{low,medium,high}.pp3: the
+# variant for the shot's ISO (low below 800, medium from 800, high from 3200). Your own
+# profiles by ISO band: partial = { iso_bands = { low = "…", medium = "…", high = "…",
+# medium_from_iso = 800, high_from_iso = 3200 } }.
+[[review.option]]
+name = "Film"
+key = "m"
+partial = { builtin = "film" }
+
+# profiles/vivid.pp3: a nature-postcard look. Film's curve, vibrance that lifts muted colours
+# more than saturated ones and leaves skin alone, local contrast, and a light dehaze.
+[[review.option]]
+name = "Vivid"
+key = "i"
+partial = { builtin = "vivid" }
+
+# profiles/warm.pp3: the scene as seen through bronze sunglasses. Film's curve a touch
+# firmer, midtones shifted warm relative to the shot's white balance (whites stay white),
+# mild skin-protecting vibrance, a little local contrast.
+[[review.option]]
+name = "Warm"
+key = "w"
+partial = { builtin = "warm" }
+
+# profiles/warm-sun.pp3: Warm and Sunny together, hard light as seen through bronze lenses.
+[[review.option]]
+name = "Warm-sun"
+key = "u"
+partial = { builtin = "warm_sun" }
+
+# profiles/bright-sun.pp3: hard midday light. Film's curve with shadows opened and
+# highlights held back (Shadows & Highlights), and enough local contrast and vibrance that
+# the lifted shadows do not go flat.
+[[review.option]]
+name = "Sunny"
+key = "s"
+partial = { builtin = "bright_sun" }
+
+# profiles/portrait.pp3: people. Film's curve with a softer top, a slight warm shift, shadows
+# opened a little (eye sockets in hard light), restrained skin-protecting vibrance, and no
+# local contrast, which would sharpen skin texture.
+[[review.option]]
+name = "Portrait"
+key = "p"
+partial = { builtin = "portrait" }
+
+# profiles/overcast.pp3: flat grey light. A firmer curve, a slight warm shift against the cool
+# cast, vibrance, local contrast and a touch of dehaze. A first guess, to be tuned on a grey
+# day's shoot.
+[[review.option]]
+name = "Overcast"
+key = "o"
+partial = { builtin = "overcast" }
+
+# profiles/dusk.pp3: after sunset, a U-shaped histogram. A curve that keeps the blacks deep
+# and rolls the lights off instead of clipping them, highlight compression and recovery,
+# local contrast for the glow, vibrance for coloured lights, and chroma noise reduction.
+[[review.option]]
+name = "Dusk"
+key = "d"
+partial = { builtin = "dusk" }

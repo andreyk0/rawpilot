@@ -1,0 +1,27 @@
+[Exposure]
+HistogramMatching=false
+CurveFromHistogramMatching=false
+CurveMode=FilmLike
+Curve=1;0;0;0.11;0.09;0.32;0.43;0.66;0.87;1;1;
+
+[Vibrance]
+Enabled=true
+Pastels=30
+Saturated=10
+PSThreshold=0;75;
+ProtectSkins=true
+AvoidColorShift=true
+PastSatTog=false
+
+[Local Contrast]
+Enabled=true
+Radius=80
+Amount=0.25
+Darkness=1
+Lightness=1
+
+[Dehaze]
+Enabled=true
+Strength=8
+Depth=25
+Saturation=20

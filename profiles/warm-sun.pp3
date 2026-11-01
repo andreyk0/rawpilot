@@ -1,0 +1,37 @@
+[Exposure]
+HistogramMatching=false
+CurveFromHistogramMatching=false
+CurveMode=FilmLike
+Curve=1;0;0;0.11;0.08;0.32;0.42;0.66;0.88;1;1;
+
+[RGB Curves]
+Enabled=true
+LumaMode=false
+rCurve=1;0;0;0.5;0.525;1;1;
+gCurve=1;0;0;0.5;0.505;1;1;
+bCurve=1;0;0;0.5;0.465;1;1;
+
+[Shadows & Highlights]
+Enabled=true
+Highlights=20
+HighlightTonalWidth=70
+Shadows=30
+ShadowTonalWidth=30
+Radius=40
+Lab=false
+
+[Vibrance]
+Enabled=true
+Pastels=20
+Saturated=8
+PSThreshold=0;75;
+ProtectSkins=true
+AvoidColorShift=true
+PastSatTog=false
+
+[Local Contrast]
+Enabled=true
+Radius=80
+Amount=0.2
+Darkness=1
+Lightness=1
